@@ -1,0 +1,17 @@
+[Unit]
+Description=AWS Discord Bot Service
+After=network.target
+
+[Service]
+User=monitor
+WorkingDirectory=/home/monitor/aws-discord-bot
+ExecStart=/usr/bin/make start_service
+Restart=always
+Environment=HOME=/home/monitor
+Environment=USER=monitor
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=aws-discord-bot
+
+[Install]
+WantedBy=multi-user.target

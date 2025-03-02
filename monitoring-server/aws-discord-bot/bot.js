@@ -1,58 +1,52 @@
-require('dotenv').config();
-const { Client, GatewayIntentBits } = require('discord.js');
-const AWS = require('aws-sdk');
+import { AWSInterface } from './aws_interface.js';
+import { DiscordInterface } from './discord_interface.js';
+import fs from 'fs';
+/** @typedef {import('./types.js').Parameters} Parameters */
 
-// Initialize Discord bot
-const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent] });
+const parametersFile = './parameters.json';
+if (!fs.existsSync(parametersFile)) {
+    console.log('❌ parameters.json file not found. Ensure the file exists with the correct structure.');
+    process.exit(1);
+}
+/**
+ * @typedef {Object} Instance
+ * @property {string} instance_id - The unique identifier of the instance (e.g., i-219387129)
+ * @property {string} short_name - The short name of the server (e.g., "minecraft")
+ * @property {string} name - The full name of the server (e.g., "Minecraft")
+ */
+/**
+ * @typedef {Object} Parameters
+ * @property {string} aws_region - The AWS region (e.g., "us-west-2")
+ * @property {string[]} authorized_users - List of authorized user IDs
+ * @property {string} servers_channel - The server channel ID
+ * @property {Instance[]} instances - List of instances
+ */
+/** @type {Parameters} */
+const PARAMETERS = JSON.parse(fs.readFileSync(parametersFile));
 
-// Initialize AWS SDK
-AWS.config.update({
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-    region: process.env.AWS_REGION
-});
+console.log("Parameters file loaded:", PARAMETERS);
 
-const ec2 = new AWS.EC2();
-const instanceId = process.env.EC2_INSTANCE_ID;
-
-// Function to start EC2 instance
-async function startInstance(interaction) {
+async function main() {
     try {
-        await ec2.startInstances({ InstanceIds: [instanceId] }).promise();
-        await interaction.reply(`✅ EC2 instance **${instanceId}** is starting...`);
+
+        // Setup the environments
+        const AWS = new AWSInterface(PARAMETERS.aws_region);
+        const discordToken = await AWS.getParameter('DISCORD_BOT_TOKEN', true);
+        const DISCORD = new DiscordInterface(discordToken, PARAMETERS.servers_channel, PARAMETERS.instances, PARAMETERS.authorized_users);
+
+        DISCORD.setStartFunc(async (server) => {
+            const instance = PARAMETERS.instances.find(s => s.short_name === server);
+            await AWS.startInstance(instance.instance_id);
+        })
+
+        DISCORD.setStopFunc(async (server) => {
+            const instance = PARAMETERS.instances.find(s => s.short_name === server);
+            await AWS.stopInstance(instance.instance_id);
+        })
+
     } catch (error) {
-        console.error(error);
-        await interaction.reply(`❌ Error starting instance: ${error.message}`);
+        console.error('❌ Error initializing bot:', error);
     }
 }
 
-// Function to stop EC2 instance
-async function stopInstance(interaction) {
-    try {
-        await ec2.stopInstances({ InstanceIds: [instanceId] }).promise();
-        await interaction.reply(`✅ EC2 instance **${instanceId}** is stopping...`);
-    } catch (error) {
-        console.error(error);
-        await interaction.reply(`❌ Error stopping instance: ${error.message}`);
-    }
-}
-
-// Handle commands
-client.on('interactionCreate', async interaction => {
-    if (!interaction.isCommand()) return;
-
-    const { commandName } = interaction;
-
-    if (commandName === 'start') {
-        await startInstance(interaction);
-    } else if (commandName === 'stop') {
-        await stopInstance(interaction);
-    }
-});
-
-// Bot login
-client.once('ready', () => {
-    console.log(`✅ Logged in as ${client.user.tag}`);
-});
-
-client.login(process.env.DISCORD_BOT_TOKEN);
+main();

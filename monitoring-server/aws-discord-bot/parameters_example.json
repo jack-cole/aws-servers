@@ -1,0 +1,15 @@
+{
+  "aws_region": "us-east-1",
+  "authorized_users": [
+    "932480923489032884",
+    "932809248298721598"
+  ],
+  "servers_channel": "2340932480932480932",
+  "instances": [
+    {
+      "instance_id": "i-0b2382309",
+      "short_name": "minecraft",
+      "name": "Minecraft"
+    }
+  ]
+}
