@@ -1,4 +1,4 @@
-import {Client, GatewayIntentBits, SlashCommandBuilder, MessageFlags} from 'discord.js';
+import {Client, GatewayIntentBits, MessageFlags, SlashCommandBuilder} from 'discord.js';
 
 export class DiscordInterface {
 
@@ -8,19 +8,20 @@ export class DiscordInterface {
         this.instances = instances;
         this.authorizedUsers = authorizedUsers;
         this.client = new Client({intents: [GatewayIntentBits.Guilds]});
+        this.cachedChannels = {};
         this.setup();
+
     }
 
-    login() {
-        client.login(this.discordToken);
+    async login() {
+        await this.client.login(this.discordToken);
+        return this.client;
     }
 
     setup() {
 
         // Registering Slash commands
         this.client.once('ready', async () => {
-            console.log(`✅ Logged in as ${this.client.user.tag}`);
-
             const startCommand = new SlashCommandBuilder().setName('start').setDescription("Starts a specific server");
             const stopCommand = new SlashCommandBuilder().setName('stop').setDescription("Stops a specific server");
             const choices = this.instances.map((instance) => {
@@ -60,9 +61,6 @@ export class DiscordInterface {
             }
         });
 
-
-        this.client.login(this.discordToken);
-
     }
 
     setStartFunc(startFunc) {
@@ -87,21 +85,55 @@ export class DiscordInterface {
     }
 
     async startInstance(interaction) {
-        const server = interaction.options.getString('server');
-        await this.startFunc(server);
-        await this.reply(interaction, `✅  Minecraft server is starting. See <#${this.channelId}> for more info.`, 2 * 60);
-
         const serverNickname = interaction.member.nickname || interaction.user.username;
-        console.log("Minecraft server started by", serverNickname);
+        try {
+            const server = interaction.options.getString('server');
+            await this.startFunc(server);
+            await this.reply(interaction, `✅  Minecraft server is starting. See <#${this.channelId}> for more info.`, 2 * 60);
+            console.log(`Minecraft server started by ${serverNickname}`);
+        } catch (err) {
+            await this.reply(interaction, `❌ Error: ${err}. See <#${this.channelId}> for more info.`, 5 * 60);
+            console.log(`Minecraft server failed to be started by ${serverNickname}`, err);
+        }
     }
 
     async stopInstance(interaction) {
-        const server = interaction.options.getString('server');
-        await this.stopFunc(server)
-        await this.reply(interaction, `✅ Minecraft server is stopping. See <#${this.channelId}> for more info.`, 2 * 60);
-
         const serverNickname = interaction.member.nickname || interaction.user.username;
-        console.log("Minecraft server stopped by", serverNickname);
+        try {
+            const server = interaction.options.getString('server');
+            await this.stopFunc(server)
+            await this.reply(interaction, `✅ Minecraft server is stopping. See <#${this.channelId}> for more info.`, 2 * 60);
+            console.log(`Minecraft server stopped by ${serverNickname}`);
+        } catch (err) {
+            await this.reply(interaction, `❌ Error: ${err}. See <#${this.channelId}> for more info.`, 5 * 60);
+            console.log(`Minecraft server failed to be stopped by ${serverNickname}`, err);
+        }
+    }
+
+    async updateMessage(channelId, messageId, messageText) {
+        const channel = await this.getChannel(channelId);
+
+        try {
+            const message = await channel.messages.fetch(messageId);
+            return await message.edit(messageText);
+        } catch (err) {
+            console.error('Failed to edit message, sending a new one...');
+            return await channel.send(messageText);
+        }
+    }
+
+    async getChannel(channelId) {
+        if (!(channelId in this.cachedChannels)) {
+            const channel = await this.client.channels.fetch(channelId);
+            if (!channel) {
+                throw 'Channel not found';
+            }
+            this.cachedChannels[channelId] = channel;
+            return channel;
+        }
+        return this.cachedChannels[channelId];
     }
 
 }
+
+export default DiscordInterface;

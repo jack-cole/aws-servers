@@ -1,5 +1,6 @@
 import {SSMClient, GetParameterCommand} from '@aws-sdk/client-ssm';
-import {EC2Client, StartInstancesCommand, StopInstancesCommand} from "@aws-sdk/client-ec2";
+import {EC2Client, StartInstancesCommand, StopInstancesCommand, DescribeInstancesCommand} from "@aws-sdk/client-ec2";
+import DiscordInterface from "./discord_interface.js";
 
 export class AWSInterface {
 
@@ -41,4 +42,28 @@ export class AWSInterface {
 
         await this.ec2Client.send(command);
     }
+
+    async getInstanceParams(instanceId) {
+        const command = new DescribeInstancesCommand({
+            InstanceIds: [instanceId],
+        });
+
+        const result = await this.ec2Client.send(command);
+        const instance = result.Reservations?.[0]?.Instances?.[0];
+
+        if (!instance)
+            throw '❌ No instance data found.';
+
+        return {
+            instanceId: instance.InstanceId,
+            publicIpAddress: instance.PublicIpAddress,
+            privateIpAddress: instance.PrivateIpAddress,
+            state: instance.State.Name,
+            instanceType: instance.InstanceType,
+            launchTime: instance.LaunchTime,
+        };
+
+    }
 }
+
+export default AWSInterface;

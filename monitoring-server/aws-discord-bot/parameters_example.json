@@ -9,7 +9,12 @@
     {
       "instance_id": "i-0b2382309",
       "short_name": "minecraft",
-      "name": "Minecraft"
+      "name": "Minecraft",
+      "minecraft_query": {
+        "channel_id": "5674564654546545646",
+        "message_id": "4545646854654564646",
+        "bottomComment" : "Download [Minecraft](https://minecraft.com), and request whitelist access."
+      }
     }
   ]
 }
