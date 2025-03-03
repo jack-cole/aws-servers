@@ -1,5 +1,5 @@
 import dgram from 'dgram';
-import { exec } from 'child_process';
+import {exec} from 'child_process';
 
 class MinecraftServerQuery {
     static query(ip, port = 25565, timeout = 1000) {
@@ -91,13 +91,13 @@ class MinecraftServerQuery {
         };
     }
 
-    static statusQuery(ip, port = 25565){
+    static statusQuery(ip, port = 25565) {
         return new Promise((resolve, reject) => {
             let command = `mcstatus ${ip}:${port} status`
             console.log("Executing:", command);
             exec(command, (err, stdout, stderr) => {
                 if (err || stderr) {
-                   reject(err || stderr)
+                    reject(err || stderr)
                 } else {
                     // Regex to match version, MOTD, and player count
                     const versionMatch = stdout.match(/version: (.*)/);
