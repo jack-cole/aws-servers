@@ -63,7 +63,7 @@ async function main() {
                 const instanceData = await AWS.getInstanceParams(instance.instance_id);
                 const privateIpAddress = instanceData.privateIpAddress;
                 const publicIpAddress = instanceData.publicIpAddress;
-                const minecraftServer = new Minecraft(instance, publicIpAddress, privateIpAddress, DISCORD);
+                const minecraftServer = new Minecraft(instance, publicIpAddress, privateIpAddress, DISCORD, AWS);
                 console.log(`Adding Minecraft Server checking for ${instance.name}(${instance.instance_id})`);
                 minecraftServer.updateStatus();
                 setInterval(minecraftServer.updateStatus.bind(minecraftServer), 30 * 1000);

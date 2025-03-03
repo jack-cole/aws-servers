@@ -7,13 +7,14 @@ class Minecraft {
      * @param {string} ipAddress - The IP address associated with the instance (either public or private).
      * @param {DiscordInterface} discord - An instance of the `DiscordInterface` class to interact with Discord.
      */
-    constructor(instance, publicIpAddress, privateIpAddress, discord) {
+    constructor(instance, publicIpAddress, privateIpAddress, discord, aws) {
         this.instance = instance;
         this.publicIpAddress = publicIpAddress;
         this.privateIpAddress = privateIpAddress;
         this.port = instance.minecraft_query.port || 25565;
         this.bottomComment = instance.minecraft_query.bottomComment || "";
         this.discord = discord;
+        this.aws = aws;
         this.lastMessage = null;
     }
 
@@ -21,6 +22,7 @@ class Minecraft {
         let newMessage;
         try {
             try {
+                // Query if Minecraft online
                 console.log(`Querying ${this.privateIpAddress}:${this.port}`)
                 const serverInfo = await MinecraftServerQuery.statusQuery(this.privateIpAddress, this.port, 10);
                 console.log(`Got response from ${this.privateIpAddress}:${this.port}:`, serverInfo);
@@ -34,10 +36,19 @@ class Minecraft {
                 });
             } catch (err) {
                 console.error(`Error while querying ${this.privateIpAddress}:${this.port}`, err);
-                newMessage = this.generateMessage({
-                    "state": "OFFLINE",
-                    "bottomComment": this.bottomComment
-                });
+                // Check if instance is running and report it as starting if so, otherwise report as offline
+                const instanceInfo = await this.aws.getInstanceParams(this.instance.instance_id);
+                if (instanceInfo.state === "running") {
+                    newMessage = this.generateMessage({
+                        "state": "STARTING",
+                        "bottomComment": this.bottomComment
+                    });
+                } else {
+                    newMessage = this.generateMessage({
+                        "state": "OFFLINE",
+                        "bottomComment": this.bottomComment
+                    });
+                }
             }
             if (this.lastMessage !== newMessage) {
                 console.log(`Updating discord message ${this.instance.minecraft_query.message_id} with the following:`, newMessage);
