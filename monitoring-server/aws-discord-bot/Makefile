@@ -1,5 +1,5 @@
 install:
-	npm install discord.js dotenv @aws-sdk/client-ssm @aws-sdk/client-ec2 iconv-lite
+	npm install
 
 install-service:
 	cp ./aws-discord-bot.service /etc/systemd/system/
