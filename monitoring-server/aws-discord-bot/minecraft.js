@@ -67,7 +67,7 @@ class Minecraft {
 
             return `🌎 **Minecraft Server Status** ${this.publicIpAddress}:${this.port}
 🟢 Online  
-🎮 **Players Online:** ${onlinePlayers} ${onlinePlayers === 0 ? "" : "(Server will shutdown if empty for 30 minutes)"} 
+🎮 **Players Online:** ${onlinePlayers} ${onlinePlayers === "0" ? "(Server will shutdown if empty for 30 minutes)" : ""} 
 🖥️ **Version:** ${version}  
 💬 **MOTD:** ${motd}
 ${bottomComment}`;
